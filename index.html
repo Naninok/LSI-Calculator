@@ -59,11 +59,15 @@
   <input id="ph" type="number" step="0.01" oninput="calculateLSI()">
 
   <label for="conduct">Conductivity (µS/cm):</label>
-  <input id="conduct" type="number" oninput="updateAutoTDS(); calculateLSI();">
+  <div style="display: flex; gap: 10px;">
+  <input id="conduct" type="number" oninput="updateAutoTDS(); calculateLSI();" placeholder="">
+  <input id="factor" type="number" step="0.01" value="0.65" oninput="updateAutoTDS();" style="width: 80px;" title="Factor (เช่น 0.65)">
+  </div>
+
 
   <!-- ✅ TDS Auto-Fill -->
   <label for="tds">TDS (ppm):</label>
-  <input id="tds" type="number" oninput="calculateLSI()">
+<input id="tds" type="number" oninput="calculateLSI()">
 
   <label for="temp">Skin Temp (°C):</label>
   <input id="temp" type="number" oninput="calculateLSI()" value="60">
@@ -772,13 +776,16 @@ function vlookupApprox(val, table) {
 // ✅ Auto-Fill TDS เมื่อกรอก conductivity
 function updateAutoTDS() {
   const conduct = parseFloat(document.getElementById('conduct').value);
-  const tdsBox = document.getElementById('tds');
+  const factor  = parseFloat(document.getElementById('factor').value);
+  const tdsBox  = document.getElementById('tds');
 
-  if (!Number.isNaN(conduct)) {
-    // Auto fill = × 0.65
-    tdsBox.value = (conduct * 0.65).toFixed(0);
+  if (!Number.isNaN(conduct) && !Number.isNaN(factor)) {
+    tdsBox.value = (conduct * factor).toFixed(0);
+  } else {
+    tdsBox.value = "";
   }
 }
+
 
 function calculateLSI() {
   const ph     = parseFloat(document.getElementById('ph').value);
