@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LSI Calculator (Exact Excel)</title>
+<title>LSI Calculator (Auto TDS)</title>
 <style>
   body {
     font-family: 'Segoe UI', Arial, sans-serif;
@@ -20,7 +20,7 @@
     background: #ffffff;
     padding: 30px;
     border-radius: 12px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
     max-width: 400px;
     width: 100%;
   }
@@ -30,52 +30,23 @@
     border-bottom: 2px solid #0056b3;
     padding-bottom: 10px;
   }
-  label {
-    display: block;
-    margin-top: 15px;
-    font-weight: bold;
-    color: #333;
-  }
+  label { display: block; margin-top: 15px; font-weight: bold; color: #333; }
   input {
-    width: 100%;
-    padding: 10px;
-    margin-top: 5px;
-    border-radius: 6px;
-    border: 1px solid #ccc;
-    box-sizing: border-box; /* Ensures padding doesn't affect width */
-    font-size: 1em;
-  }
-  input:focus {
-    border-color: #007bff;
-    outline: none;
-    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+    width: 100%; padding: 10px; margin-top: 5px;
+    border-radius: 6px; border: 1px solid #ccc;
+    box-sizing: border-box; font-size: 1em;
   }
   .result-container {
-    margin-top: 25px;
-    padding: 18px;
+    margin-top: 25px; padding: 18px;
     background: #f1f8ff;
-    border-radius: 8px;
-    border: 1px solid #cce5ff;
+    border-radius: 8px; border: 1px solid #cce5ff;
   }
-  .result-item {
-    margin-bottom: 10px;
-  }
-  .value {
-    font-weight: bold;
-    font-size: 1.6em;
-    display: inline-block;
-    margin-left: 10px;
-  }
-  .interp {
-    margin-top: 15px;
-    padding: 10px;
-    border-radius: 5px;
-    font-weight: bold;
-    text-align: center;
-  }
-  .interp.scaling { background-color: #ffcccc; color: #d9534f; }
+  .result-item { margin-bottom: 10px; }
+  .value { font-weight: bold; font-size: 1.6em; margin-left: 10px; }
+  .interp { margin-top: 15px; padding: 10px; border-radius: 5px; font-weight: bold; text-align: center; }
+  .interp.scaling { background-color: #cce5ff; color: #0056b3; }
   .interp.balanced { background-color: #d4edda; color: #28a745; }
-  .interp.corrosive { background-color: #cce5ff; color: #0056b3; }
+  .interp.corrosive { background-color: #ffcccc; color: #d9534f; }
 </style>
 </head>
 <body>
@@ -85,19 +56,23 @@
 
 <form>
   <label for="ph">pH:</label>
-  <input id="ph" type="number" step="0.01" oninput="calculateLSI()" value="">
-  
+  <input id="ph" type="number" step="0.01" oninput="calculateLSI()">
+
   <label for="conduct">Conductivity (µS/cm):</label>
-  <input id="conduct" type="number" oninput="calculateLSI()" value="">
-  
+  <input id="conduct" type="number" oninput="updateAutoTDS(); calculateLSI();">
+
+  <!-- ✅ TDS Auto-Fill -->
+  <label for="tds">TDS (ppm):</label>
+  <input id="tds" type="number" oninput="calculateLSI()">
+
   <label for="temp">Skin Temp (°C):</label>
   <input id="temp" type="number" oninput="calculateLSI()" value="60">
-  
+
   <label for="ca">Calcium Hardness (ppm as CaCO₃):</label>
-  <input id="ca" type="number" oninput="calculateLSI()" value="">
-  
+  <input id="ca" type="number" oninput="calculateLSI()">
+
   <label for="alk">M-Alkalinity (ppm as CaCO₃):</label>
-  <input id="alk" type="number" oninput="calculateLSI()" value="">
+  <input id="alk" type="number" oninput="calculateLSI()">
 </form>
 
 <div class="result-container">
@@ -109,9 +84,17 @@
   </div>
   <div class="interp" id="interp"></div>
 </div>
+<div style="text-align:center; margin-top:25px;">
+  <a href="https://naninok.github.io/Main-Page/" 
+     style= padding:10px 18px; border-radius:6px; text-decoration:none; font-weight:bold;">
+     ⬅ กลับไปหน้าแรก
+  </a>
+</div>
 </div>
 
+
 <script>
+
 // Tables taken from your Excel (LSI sheet)
 const SOLIDS = [[50, 0.07],
  [75, 0.08],
@@ -775,7 +758,7 @@ const ALKALINITY = [[1, 0],
  [970, 2.99],
  [980, 2.99],
  [990, 3]];
- 
+
 
 function vlookupApprox(val, table) {
   if (!Array.isArray(table) || table.length === 0) return null;
@@ -786,27 +769,39 @@ function vlookupApprox(val, table) {
   return table[table.length-1][1];
 }
 
-function calculateLSI() {
+// ✅ Auto-Fill TDS เมื่อกรอก conductivity
+function updateAutoTDS() {
   const conduct = parseFloat(document.getElementById('conduct').value);
-  const tempC = parseFloat(document.getElementById('temp').value);
-  const ca = parseFloat(document.getElementById('ca').value);
-  const alk = parseFloat(document.getElementById('alk').value);
-  const ph = parseFloat(document.getElementById('ph').value);
+  const tdsBox = document.getElementById('tds');
+
+  if (!Number.isNaN(conduct)) {
+    // Auto fill = × 0.65
+    tdsBox.value = (conduct * 0.65).toFixed(0);
+  }
+}
+
+function calculateLSI() {
+  const ph     = parseFloat(document.getElementById('ph').value);
+  const conduct = parseFloat(document.getElementById('conduct').value);
+  const tds     = parseFloat(document.getElementById('tds').value);
+  const tempC  = parseFloat(document.getElementById('temp').value);
+  const ca     = parseFloat(document.getElementById('ca').value);
+  const alk    = parseFloat(document.getElementById('alk').value);
 
   const lsiValueEl = document.getElementById('lsiValue');
-  const riValueEl = document.getElementById('riValue');
-  const interpEl = document.getElementById('interp');
+  const riValueEl  = document.getElementById('riValue');
+  const interpEl   = document.getElementById('interp');
 
-  if ([conduct, tempC, ca, alk, ph].some(v => Number.isNaN(v))) {
+  if ([ph, conduct, tempC, ca, alk].some(v => Number.isNaN(v))) {
     lsiValueEl.textContent = "–";
-    riValueEl.textContent = "–";
-    interpEl.textContent = "";
-    interpEl.className = "interp";
+    riValueEl.textContent  = "–";
+    interpEl.textContent   = "";
+    interpEl.className     = "interp";
     return;
   }
 
-  // follow exact Excel steps:
-  const TDS = conduct * 0.7; // C5 = C4*0.7
+  const TDS = tds;
+
   const K5 = vlookupApprox(TDS, SOLIDS);
   const tempF = tempC * 1.8 + 32;
   const K6 = vlookupApprox(Math.round(tempF), TEMPERATURE);
@@ -815,28 +810,28 @@ function calculateLSI() {
 
   const pHs = 9.3 + K5 + K6 - K7 - K8;
   const LSI = ph - pHs;
-  const RI = 2 * pHs - ph;
+  const RI  = 2 * pHs - ph;
 
   lsiValueEl.textContent = LSI.toFixed(2);
-  riValueEl.textContent = RI.toFixed(2);
-  lsiValueEl.style.color = LSI > 0 ? '#d9534f' : '#28a745';
+  riValueEl.textContent  = RI.toFixed(2);
 
-  // interpretation
+  lsiValueEl.style.color = LSI > 0 ? '#28a745' : '#d9534f';
+
   let interp = "";
-  let interpClass = "interp";
+  let cls = "interp";
   if (LSI > 0.5) {
     interp = "Scaling tendency (LSI > 0.5)";
-    interpClass += " scaling";
+    cls += " scaling";
   } else if (LSI >= -0.1) {
-    interp = "Balanced (LSI -0.1 to 0.1)";
-    interpClass += " balanced";
+    interp = "Balanced (LSI -0.1 to 0.5)";
+    cls += " balanced";
   } else {
     interp = "Corrosive tendency (LSI < -0.1)";
-    interpClass += " corrosive";
+    cls += " corrosive";
   }
-  
+
   interpEl.textContent = interp;
-  interpEl.className = interpClass;
+  interpEl.className = cls;
 }
 
 window.addEventListener('DOMContentLoaded', calculateLSI);
